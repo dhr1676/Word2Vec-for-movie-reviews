@@ -129,5 +129,5 @@ if __name__ == '__main__':
     output = pd.DataFrame(data={"id": test["id"], "sentiment": result_rf})
 
     # Use pandas to write the comma-separated output file
-    output.to_csv("Bag_of_Words_model_output.csv", index=False, quoting=3)
+    output.to_csv("Bag_of_Words_model_output_0509.csv", index=False, quoting=3)
     print("Predict finished!\n")
