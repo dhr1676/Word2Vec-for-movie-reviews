@@ -45,3 +45,6 @@ def review_to_wordlist(review, remove_stopwords=False):
     #
     # 5. Return a list of words
     return words
+
+
+print("haha")
