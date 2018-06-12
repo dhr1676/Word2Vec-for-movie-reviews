@@ -44,7 +44,7 @@ def review_to_words(raw_review):
 if __name__ == '__main__':
     # logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
     print("Loading train data\n")
-    train = pd.read_csv("labeledTrainData.tsv", header=0, delimiter="\t", quoting=3)
+    train = pd.read_csv("./input_data/labeledTrainData.tsv", header=0, delimiter="\t", quoting=3)
     # Get the number of reviews based on the data column size
     num_reviews = train["review"].size
 
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     forest = forest.fit(train_data_features, train["sentiment"])
 
     # Read the test data
-    test = pd.read_csv("testData.tsv", header=0, delimiter="\t", quoting=3)
+    test = pd.read_csv("./input_data/testData.tsv", header=0, delimiter="\t", quoting=3)
 
     # Verify that there are 25000 rows and 2 columns
     print("Test data shape", test.shape)
@@ -129,5 +129,5 @@ if __name__ == '__main__':
     output = pd.DataFrame(data={"id": test["id"], "sentiment": result_rf})
 
     # Use pandas to write the comma-separated output file
-    output.to_csv("Bag_of_Words_model_output_0509.csv", index=False, quoting=3)
+    output.to_csv("./output/Bag_of_Words_model_output_0509.csv", index=False, quoting=3)
     print("Predict finished!\n")

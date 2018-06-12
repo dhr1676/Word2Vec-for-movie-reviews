@@ -90,12 +90,33 @@ def getAvgFeatureVecs(reviews, model, num_features):
     reviewFeatureVecs = np.zeros((len(reviews), num_features), dtype="float32")
 
     for review in reviews:
-        if counter % 5000 == 0:
+        if counter % 1000 == 0:
             print("Review %d of %d" % (counter, len(reviews)))
         reviewFeatureVecs[counter] = makeFeatureVec(review, model, num_features)
         counter += 1
 
     return reviewFeatureVecs
+
+
+def create_bag_of_centroids(wordlist, word_centroid_map):
+    #
+    # The number of clusters is equal to the highest cluster index
+    # in the word / centroid map
+    num_centroids = max(word_centroid_map.values()) + 1
+    #
+    # Pre-allocate the bag of centroids vector (for speed)
+    bag_of_centroids = np.zeros(num_centroids, dtype="float32")
+    #
+    # Loop over the words in the review. If the word is in the vocabulary,
+    # find which cluster it belongs to, and increment that cluster count
+    # by one
+    for word in wordlist:
+        if word in word_centroid_map:
+            index = word_centroid_map[word]
+            bag_of_centroids[index] += 1
+    #
+    # Return the "bag of centroids"
+    return bag_of_centroids
 
 
 if __name__ == '__main__':
@@ -104,95 +125,42 @@ if __name__ == '__main__':
     test = pd.read_csv("./input_data/testData.tsv", header=0, delimiter="\t", quoting=3)
     unlabeled_train = pd.read_csv("./input_data/unlabeledTrainData.tsv", header=0, delimiter="\t", quoting=3)
 
-    # Verify the number of reviews that were read (100,000 in total)
-    # print("Read %d labeled train reviews, %d labeled test reviews, "
-    #       "and %d unlabeled reviews\n" % (train["review"].size,
-    #                                       test["review"].size,
-    #                                       unlabeled_train["review"].size))
-
-    # load the punctuation tokenizer
-    tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
-
-    sentences = []
-    print("Parsing sentences from training set")
-    for review in train["review"]:
-        # The difference between the "+=" and append()
-        # If you are appending a list of lists to another list of lists,
-        # append() will only append the first list,
-        # you will need to use "+=" in order to join all of the lists at once
-        sentences += review_to_sentences(review, tokenizer)
-
-    print("Parsing sentences from unlabeled set")
-    for review in unlabeled_train["review"]:
-        sentences += review_to_sentences(review, tokenizer)
-
-    # Check how many sentences we have in total
-    # should be around 850,000+
-    print("how many sentences we have %d\n " % len(sentences))
-
-    print(sentences[0])
+    model = Word2Vec.load("300-features_40-min_word_10-context")
+    # print(type(model.wv.syn0))
+    # print(model.wv.syn0[0])
+    # print(model["flower"].shape)
 
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
     # Set values for various parameters
     num_features = 300  # Word vector dimensionality
-    min_word_count = 40  # Minimum word count
-    num_workers = 4  # Number of threads to run in parallel
-    context = 10  # Context window size
-    downsampling = 1e-3  # Downsample setting for frequent words
-
-    # Initialize and train the model
-    print("Training model...")
-    model = Word2Vec(sentences,
-                     workers=num_workers,
-                     size=num_features,
-                     min_count=min_word_count,
-                     window=context,
-                     sample=downsampling)
-
-    # If you don't plan to train the model any further, calling
-    # init_sims will make the model much more memory-efficient.
-    model.init_sims(replace=True)
-
-    # It can be helpful to create a meaningful model name and
-    # save the model for later use. You can load it later using Word2Vec.load()
-    model_name = "300-features_40-min_word_10-context"
-    model.save(model_name)
-
-    # Test the model
-    # model = Word2Vec.load("300-features_40-min_word_10-context")
-    # model.doesnt_match("man woman child kitchen".split())
-    # model.doesnt_match("france england germany berlin".split())
-    # model.most_similar("man")
-    # model.most_similar("queen")
-    # model.most_similar("awful")
 
     # Calculate average feature vectors for training and testing sets,
     # using the functions we defined above. Notice that we now use stop words removal.
-    print("Creating average feature vectors for train reviews")
-    clean_train_reviews = []
-    for review in train["review"]:
-        clean_train_reviews.append(review_to_wordlist(review, remove_stopwords=True))
-
-    trainDataVecs = getAvgFeatureVecs(clean_train_reviews, model, num_features)
-
-    print("Creating average feature vectors for test reviews")
-    clean_test_reviews = []
-    for review in test["review"]:
-        clean_test_reviews.append(review_to_wordlist(review, remove_stopwords=True))
-    testDataVecs = getAvgFeatureVecs(clean_test_reviews, model, num_features)
-
-    forest = RandomForestClassifier(n_estimators=100)
-
-    print("Fitting a random forest to labeled training data...")
-    forest = forest.fit(trainDataVecs, train["sentiment"])
-
-    # Test and extract results
-    result = forest.predict(testDataVecs)
-
-    output = pd.DataFrame(data={"id": test["id"], "sentiment": result})
-
-    output.to_csv("./output/Word2Vec_AverageVectors.csv", index=False, quoting=3)
+    # print("Creating average feature vectors for train reviews")
+    # clean_train_reviews = []
+    # for review in train["review"]:
+    #     clean_train_reviews.append(review_to_wordlist(review, remove_stopwords=True))
+    #
+    # trainDataVecs = getAvgFeatureVecs(clean_train_reviews, model, num_features)
+    #
+    # print("Creating average feature vectors for test reviews")
+    # clean_test_reviews = []
+    # for review in test["review"]:
+    #     clean_test_reviews.append(review_to_wordlist(review, remove_stopwords=True))
+    # testDataVecs = getAvgFeatureVecs(clean_test_reviews, model, num_features)
+    #
+    # forest = RandomForestClassifier(n_estimators=100)
+    #
+    # print("Fitting a random forest to labeled training data...")
+    # forest = forest.fit(trainDataVecs, train["sentiment"])
+    #
+    # # Test and extract results
+    # result = forest.predict(testDataVecs)
+    #
+    # output = pd.DataFrame(data={"id": test["id"], "sentiment": result})
+    #
+    # output.to_csv("Word2Vec_AverageVectors.csv", index=False, quoting=3)
 
     start = time.time()
     word_vectors = model.wv.syn0
@@ -200,6 +168,7 @@ if __name__ == '__main__':
     # print(word_vectors.shape)
 
     # Initialize a k-means object and use it to extract centroids
+    print("Running K means")
     kmeans_clustering = KMeans(n_clusters=num_clusters)
     idx = kmeans_clustering.fit_predict(word_vectors)
 
@@ -207,9 +176,9 @@ if __name__ == '__main__':
     elapsed = end - start
     print("Time take for K-Means clustering: %f seconds" % elapsed)
 
-    # # Create a Word / Index dictionary, mapping each vocabulary word to a cluster number
-    # word_centroid_map = dict(zip(model.wv.index2word, idx))
-    # # For the first 10 clusters
+    # Create a Word / Index dictionary, mapping each vocabulary word to a cluster number
+    word_centroid_map = dict(zip(model.wv.index2word, idx))
+    # For the first 10 clusters
     # for cluster in range(0, 10):
     #     # Print the cluster number
     #     print("\nCluster %d" % cluster)
@@ -221,3 +190,43 @@ if __name__ == '__main__':
     #             words.append(word_centroid_map.keys()[i])
     #     print(words)
 
+    print("Cleaning training reviews")
+    clean_train_reviews = []
+    for review in train["review"]:
+        clean_train_reviews.append(review_to_wordlist(review, remove_stopwords=True))
+
+    print("Cleaning test reviews")
+    clean_test_reviews = []
+    for review in test["review"]:
+        clean_test_reviews.append(review_to_wordlist(review, remove_stopwords=True))
+
+    # ****** Create bags of centroids
+    #
+    # Pre-allocate an array for the training set bags of centroids (for speed)
+    train_centroids = np.zeros((train["review"].size, num_clusters), dtype="float32")
+
+    # Transform the training set reviews into bags of centroids
+    counter = 0
+    for review in clean_train_reviews:
+        train_centroids[counter] = create_bag_of_centroids(review, word_centroid_map)
+        counter += 1
+
+    # Repeat for test reviews
+    test_centroids = np.zeros((test["review"].size, num_clusters), dtype="float32")
+
+    counter = 0
+    for review in clean_test_reviews:
+        test_centroids[counter] = create_bag_of_centroids(review, word_centroid_map)
+        counter += 1
+
+    forest = RandomForestClassifier(n_estimators=100)
+
+    # Fitting the forest may take a few minutes
+    print("Fitting a random forest to labeled training data...")
+    forest = forest.fit(train_centroids, train["sentiment"])
+    result = forest.predict(test_centroids)
+
+    # Write the test results
+    output = pd.DataFrame(data={"id": test["id"], "sentiment": result})
+    output.to_csv("./output/BagOfCentroids.csv", index=False, quoting=3)
+    print("Wrote BagOfCentroids.csv")
